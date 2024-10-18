@@ -64,5 +64,8 @@ with open(motec_file, 'r') as f:
     for header in headers:
         print(header)
 
+def func():
+    pass
+
 
 print(race_df)
