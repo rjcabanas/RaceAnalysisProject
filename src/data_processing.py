@@ -4,8 +4,7 @@ import numpy as np
 import bisect
 
 
-"""Cleans the raw data into something useable"""
-def clean_data(motec_file):
+def clean_data(motec_file)->list:
     raw_track_data = di.raw_data(motec_file)
     cleaned_data = []
     for dataline in raw_track_data:
@@ -14,8 +13,8 @@ def clean_data(motec_file):
         cleaned_data.append(float_data)
     return cleaned_data
 
-"""Returns a list of when laps were finished"""
-def race_laps(motec_file:str)->list:
+
+def race_laps(motec_file)->list:
     with open(motec_file, 'r') as f:
         data_lines = [line.strip() for line in f]
     laps_line = data_lines[11].split(',')
@@ -23,23 +22,6 @@ def race_laps(motec_file:str)->list:
     cleaned_laps_data = [float(time) for time in (filter(None, laps_data))]
 
     return cleaned_laps_data
-
-"""Returns an array representing the yaw moment with time. NEEDS REWORKING"""
-def yaw_moment(Vehicle, RaceData):
-    g_lat = RaceData[:,2].astype(float)
-    steer_angle = RaceData[:, 4].astype(float)
-    speed = RaceData[:, 5].astype(float)
-    cog_height = np.full((1, len(g_lat)), Vehicle.CoG_height)
-    wheelbase = np.full((1, len(g_lat)), Vehicle.wheelbase)
-    steering_ratio = np.full((1, len(g_lat)), Vehicle.SteeringRatio)
-    g_acceleration = np.full((1, len(g_lat)), 9.81)
-
-    eq_expression_1 = np.divide((np.multiply(g_lat, cog_height)), wheelbase)
-    eq_expression_2 = np.divide((np.multiply(np.multiply(steer_angle, steering_ratio), speed ** 2)),
-                             (np.multiply(wheelbase, g_acceleration)))
-    yaw_moment_array = eq_expression_1 - eq_expression_2
-
-    return  yaw_moment_array.ravel()
 
 """Class to store different vehicles used within ACC. NEEDS MORE WORK AND THINKING"""
 class Vehicle:
@@ -65,10 +47,6 @@ class LapData:
         self.steerangle = []
         self.throttle = []
         self.braking_data = []
-
-    """Retrns values of the total time under full throttle, brake and coasting across the lap."""
-    def pedal_input_summary(self):
-        pass
 
 
 def interpolate_data(motec_file) -> list:
@@ -153,13 +131,47 @@ def speed_time_plot(laps):
         y = laps[i].speed_data
         plt.plot(x, y, label=f"Lap {i + 1}")
 
+    plt.xlabel('Time (s)')
+    plt.ylabel('Speed (mph)')
+    plt.title('Speed and Time Plot')
     plt.grid()
     plt.legend()
     plt.show()
+
+
+def steering_plot(laps):
+    for i in range(len(laps)):
+        x = laps[i].time_intervals
+        y = laps[i].steerangle
+        plt.plot(x, y, label=f"Lap {i + 1}")
+
+    plt.xlabel('Time (s)')
+    plt.ylabel('Steer Angle (deg)')
+    plt.title('Steer Angle and Time Plot')
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+
+def brake_throttle_plot(laps):
+    for i in range(len(laps)):
+        x = laps[i].time_intervals
+        y1 = laps[i].throttle
+        y2 = laps[i].braking_data
+        plt.plot(x, y1, label=f"Lap {i + 1}")
+        plt.plot(x, y2, label=f"Lap {i + 1}")
+
+    plt.xlabel('Time (s)')
+    plt.ylabel('Throttle/Brake Percentage (%)')
+    plt.title('Throttle and Brake Plot')
+    plt.grid()
+    plt.legend()
+    plt.show()
+
 
 """Trial Data and Vehicle"""
 motec_file = 'trial.csv'
 amr_v8_gt3 = Vehicle(0.3, 2.73, 13.09)
 
 x = add_data_to_laps(motec_file)
-speed_time_plot(x)
+steering_plot(x)
