@@ -1,9 +1,6 @@
 import data_ingestion as di
 import matplotlib.pyplot as plt
 import numpy as np
-import math
-import seaborn as sns
-import pandas as pd
 import bisect
 
 
@@ -74,7 +71,9 @@ class LapData:
         pass
 
 
-def interpolate_data(data):
+def interpolate_data(motec_file) -> list:
+
+    data = np.array(clean_data(motec_file))
     time = data[:,0].astype(float)
     speed = data[:,5].astype(float)
     steerangle = data[:,4].astype(float)
@@ -95,9 +94,10 @@ def interpolate_data(data):
 
     return relevant_data
 
+
 def beacon_indices(motec_file) -> list:
-    race_data = np.array(clean_data(motec_file))
-    interped_data = interpolate_data(race_data)
+
+    interped_data = interpolate_data(motec_file)
 
     beacon_times = race_laps(motec_file)
     beacon_indices = [bisect.bisect_left(interped_data[0], time) for time in beacon_times]
@@ -106,28 +106,35 @@ def beacon_indices(motec_file) -> list:
 
     return beacon_indices
 
+
 def create_laps(motec_file):
-    race_data = np.array(clean_data(motec_file))
-    interped_data = interpolate_data(race_data)
-    beacon_indices = beacon_indices(motec_file)
 
-    laps = [LapData(i + 1) for i in range(len(beacon_indices) - 1)]
+    beacons_index_loc = beacon_indices(motec_file)
 
-    for i in range(len(beacon_index)):
+    laps = [LapData(i + 1) for i in range(len(beacons_index_loc) - 1)]
+
+    return laps
+
+def add_data_to_laps(motec_file):
+    
+    interped_data = interpolate_data(motec_file)
+    beacon_index_loc = beacon_indices(motec_file)
+    laps = create_laps(motec_file)
+
+    for i in range(len(laps)):
         try:
-            lap_time = interped_data[0][lap_beacon_times_index[i]:lap_beacon_times_index[i + 1]]
-            lap_speed = interped_data[1][lap_beacon_times_index[i]:lap_beacon_times_index[i + 1]]
+            lap_time = interped_data[0][beacon_index_loc[i]:beacon_index_loc[i + 1]]
+            lap_speed = interped_data[1][beacon_index_loc[i]:beacon_index_loc[i + 1]]
             lap_speed = [speed * 2.237 for speed in lap_speed]
-            steerangle = interped_data[2][lap_beacon_times_index[i]:lap_beacon_times_index[i + 1]]
-            throttle = interped_data[3][lap_beacon_times_index[i]:lap_beacon_times_index[i + 1]]
-            braking = interped_data[4][lap_beacon_times_index[i]:lap_beacon_times_index[i + 1]]
+            steerangle = interped_data[2][beacon_index_loc[i]:beacon_index_loc[i + 1]]
+            throttle = interped_data[3][beacon_index_loc[i]:beacon_index_loc[i + 1]]
+            braking = interped_data[4][beacon_index_loc[i]:beacon_index_loc[i + 1]]
             laps[i].time_intervals = lap_time
             laps[i].speed_data = lap_speed
             laps[i].steerangle = steerangle
             laps[i].throttle = throttle
             laps[i].braking_data = braking
-        except:
-            IndexError
+        except IndexError:
             break
 
     for i in range(len(laps)):
@@ -139,6 +146,7 @@ def create_laps(motec_file):
 
     return laps
 
+
 def speed_time_plot(laps):
     for i in range(len(laps)):
         x = laps[i].time_intervals
@@ -149,11 +157,9 @@ def speed_time_plot(laps):
     plt.legend()
     plt.show()
 
-motec_file = 'trial.csv'
-
 """Trial Data and Vehicle"""
-raceData1 = np.array(clean_data(motec_file))
+motec_file = 'trial.csv'
 amr_v8_gt3 = Vehicle(0.3, 2.73, 13.09)
 
-x = interpolate_data(raceData1)
-print(x)
+x = add_data_to_laps(motec_file)
+speed_time_plot(x)
